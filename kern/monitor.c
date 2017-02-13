@@ -24,6 +24,7 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "getsum", "sum from start to end", mon_getsum }
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -57,10 +58,54 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
+	unsigned ebp_value;
+	__asm__ __volatile__(
+	"movl %%ebp, %0"
+	:"=q"(ebp_value)
+	::);
+
+	cprintf("Stack backtrace:\n");
+	while ( ebp_value ){
+		unsigned eip_value = *((unsigned*)ebp_value + 1);
+		cprintf("  ebp %08x  eip %08x  args", ebp_value, eip_value);
+		for ( int i = 0; i < 5; i++ ){
+			cprintf(" %08x", *((unsigned*)ebp_value + 2+i) );
+		}
+		cprintf("\n");
+		struct Eipdebuginfo info;
+		debuginfo_eip(eip_value, &info);
+		cprintf("         %s:%d: ", info.eip_file, info.eip_line);
+		for( int i = 0; i < info.eip_fn_namelen; i++ ){
+			cputchar(info.eip_fn_name[i]);
+		}
+		cprintf("+%d\n", eip_value - info.eip_fn_addr);
+		ebp_value = *(unsigned*)ebp_value;
+	}
 	return 0;
 }
 
+static int mon_atoi(char *s){
+	int n = 0;
+	while ( *s ){
+		n = 10*n + (*s++ - '0');
+	}
+	return n;
+}
+
+int mon_getsum(int argc, char **argv, struct Trapframe* tf){
+	if ( argc != 3 ){
+		cprintf("usage: start end\n");
+		return 0;
+	}
+	int start = mon_atoi(argv[1]);
+	int end = mon_atoi(argv[2]);
+	int sum = 0;
+	while (start < end){
+		sum += start++;
+	}
+	cprintf("sum from %d to %d: %d\n", start, end, sum);
+	return 0;
+}
 
 
 /***** Kernel monitor command interpreter *****/
