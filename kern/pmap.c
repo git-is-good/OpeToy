@@ -162,6 +162,9 @@ mem_init(void)
 	pages = (struct PageInfo*)boot_alloc(n);
 	memset(pages, 0, n);
 
+	size_t size_envs = NENV*sizeof(struct Env);
+	envs = (struct Env*)boot_alloc(size_envs);
+	memset(envs, 0, size_envs);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -195,6 +198,7 @@ mem_init(void)
 	// LAB 3: Your code here.
 	boot_map_region(kern_pgdir, UPAGES, ROUNDUP(n, PGSIZE), PADDR(pages), PTE_U);
 
+	boot_map_region(kern_pgdir, UENVS, ROUNDUP(size_envs, PGSIZE), PADDR(envs), PTE_U);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -542,6 +546,22 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
 
+	if ( (uint32_t)va >= ULIM ){
+		user_mem_check_addr = (uintptr_t)va;
+		return -E_FAULT;
+	}
+	uint8_t *vstart = (uint8_t*)ROUNDDOWN(va, PGSIZE);
+	uint8_t *vend = (uint8_t*)ROUNDUP(va + len, PGSIZE);
+	struct PageInfo *pinfo;
+	pte_t *pte_store;
+
+	for ( uint8_t *walker = vstart; walker < vend; walker += PGSIZE ){
+		pinfo = page_lookup(env->env_pgdir, walker, &pte_store);
+		if ( pinfo == NULL || (~*pte_store & perm) != 0 ){
+			user_mem_check_addr = (walker == vstart ? (uintptr_t)va : (uintptr_t)walker);
+			return -E_FAULT;
+		}
+	}
 	return 0;
 }
 
