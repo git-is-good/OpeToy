@@ -65,12 +65,58 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
+extern void idt_entry0();
+extern void idt_entry1();
+extern void idt_entry2();
+extern void idt_entry3();
+extern void idt_entry4();
+extern void idt_entry5();
+extern void idt_entry6();
+extern void idt_entry7();
+
+extern void idt_entry8();
+extern void idt_entry10();
+extern void idt_entry11();
+extern void idt_entry12();
+extern void idt_entry13();
+extern void idt_entry14();
+
+extern void idt_entry16();
+extern void idt_entry17();
+extern void idt_entry18();
+extern void idt_entry19();
+
+extern void idt_entry0x30();
 
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
+	// i am not sure how to set the privilege level
+	// though it's clear that a user process can raise a divide error...
+	
+	SETGATE(idt[0], 1, GD_KT, idt_entry0, 3);
+	SETGATE(idt[1], 1, GD_KT, idt_entry1, 0);
+	SETGATE(idt[2], 1, GD_KT, idt_entry2, 0);
+	SETGATE(idt[3], 1, GD_KT, idt_entry3, 3);
+	SETGATE(idt[4], 1, GD_KT, idt_entry4, 0);
+	SETGATE(idt[5], 1, GD_KT, idt_entry5, 0);
+	SETGATE(idt[6], 1, GD_KT, idt_entry6, 0);
+	SETGATE(idt[7], 1, GD_KT, idt_entry7, 0);
+	SETGATE(idt[8], 1, GD_KT, idt_entry8, 0);
 
+	SETGATE(idt[10], 1, GD_KT, idt_entry10, 0);
+	SETGATE(idt[11], 1, GD_KT, idt_entry11, 0);
+	SETGATE(idt[12], 1, GD_KT, idt_entry12, 0);
+	SETGATE(idt[13], 1, GD_KT, idt_entry13, 0);
+	SETGATE(idt[14], 1, GD_KT, idt_entry14, 0);
+
+	SETGATE(idt[16], 1, GD_KT, idt_entry16, 0);
+	SETGATE(idt[17], 1, GD_KT, idt_entry17, 0);
+	SETGATE(idt[18], 1, GD_KT, idt_entry18, 0);
+	SETGATE(idt[19], 1, GD_KT, idt_entry19, 0);
+	
+	SETGATE(idt[T_SYSCALL], 1, GD_KT, idt_entry0x30, 3);
 	// LAB 3: Your code here.
 
 	// Per-CPU setup 
@@ -174,6 +220,23 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	struct PushRegs *regs = &tf->tf_regs;
+	switch (tf->tf_trapno){
+	case T_PGFLT:
+		if ( (tf->tf_cs & 3) == 0 ){
+			print_trapframe(tf);
+			panic("kernel page fault\n");
+		}
+		page_fault_handler(tf);
+		return;
+	case T_BRKPT:
+		monitor(tf);
+		return;   // useless, never return...
+	case T_SYSCALL:
+		// %eax is used to store the return value
+		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, regs->reg_ebx, regs->reg_edi, regs->reg_esi);
+		return;
+	}
 
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
@@ -214,6 +277,7 @@ trap(struct Trapframe *tf)
 	// sched_yield()
 	if (xchg(&thiscpu->cpu_status, CPU_STARTED) == CPU_HALTED)
 		lock_kernel();
+	
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
@@ -267,7 +331,16 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-
+	if ( (tf->tf_cs & 3) == 0 ){
+		struct PageInfo *p = page_alloc(0);
+		if ( !p ){
+			panic("page_fault_handler: page_alloc failed\n");
+		}
+		assert( curenv );
+		page_insert(curenv->env_pgdir, p, (void*)fault_va, PTE_W);
+		return;
+	}
+	
 	// LAB 3: Your code here.
 
 	// We've already handled kernel-mode exceptions, so if we get here,

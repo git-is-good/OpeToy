@@ -16,4 +16,5 @@ int mon_help(int argc, char **argv, struct Trapframe *tf);
 int mon_kerninfo(int argc, char **argv, struct Trapframe *tf);
 int mon_backtrace(int argc, char **argv, struct Trapframe *tf);
 
+int mon_getsum(int, char **argv, struct Trapframe*);
 #endif	// !JOS_KERN_MONITOR_H
