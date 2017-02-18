@@ -201,6 +201,7 @@ mem_init(void)
 	boot_map_region(kern_pgdir, UPAGES, ROUNDUP(n, PGSIZE), PADDR(pages), PTE_U);
 
 	boot_map_region(kern_pgdir, UENVS, ROUNDUP(size_envs, PGSIZE), PADDR(envs), PTE_U);
+	pgdir_walk(kern_pgdir, (void*)MMIOBASE, 1);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -213,6 +214,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	
+	// lab4: now that kernel stack is initialized for percpu, this code is useless
 	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
@@ -275,7 +277,10 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+	for ( int i = 0; i < NCPU; i++ ){
+		uintptr_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir, kstacktop_i - KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -316,12 +321,15 @@ page_init(void)
 	// free pages!
 	size_t i;
 	size_t nowend_pg = PGNUM( PADDR(boot_alloc(0)) );
-	for (i = 1; i < npages_basemem; i++) {
+	for (i = npages_basemem - 1; i >= 1; i--) {
+		if ( i == MPENTRY_PADDR / PGSIZE ){
+			continue;
+		}
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
-	for (i = nowend_pg; i < npages; i++) {
+	for (i = npages - 1; i >= nowend_pg; i--) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -586,7 +594,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+//	panic("mmio_map_region not implemented");
+	if ( base + ROUNDUP(size, PGSIZE) > MMIOLIM ){
+		panic("mmio_map_region: out of MMIOLIM\n");
+	}
+	assert( base % PGSIZE == 0 );
+	boot_map_region(kern_pgdir, base, ROUNDUP(size, PGSIZE), pa, PTE_W|PTE_PCD|PTE_PWT);
+	uintptr_t oldbase = base;
+	base += ROUNDUP(size, PGSIZE);
+	return (void*)oldbase;
 }
 
 static uintptr_t user_mem_check_addr;

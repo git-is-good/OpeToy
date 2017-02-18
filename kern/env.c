@@ -189,6 +189,7 @@ env_setup_vm(struct Env *e)
 	e->env_pgdir[PDX(UENVS)] = kern_pgdir[PDX(UENVS)];
 	e->env_pgdir[PDX(UPAGES)] = kern_pgdir[PDX(UPAGES)];
 	e->env_pgdir[PDX(KSTACKTOP-PGSIZE)] = kern_pgdir[PDX(KSTACKTOP-PGSIZE)];
+	e->env_pgdir[PDX(MMIOBASE)] = kern_pgdir[PDX(MMIOBASE)];
 	for ( int i = 0; i < ~KERNBASE+1; i += PGSIZE ){
 		e->env_pgdir[PDX(KERNBASE+i)] = kern_pgdir[PDX(KERNBASE+i)];
 	}
@@ -529,13 +530,14 @@ env_run(struct Env *e)
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
 	if ( curenv ){
-		assert(curenv->env_status = ENV_RUNNING);
+		assert(curenv->env_status == ENV_RUNNING);
 		curenv->env_status = ENV_RUNNABLE;
 	}
 	curenv = e;
 	e->env_status = ENV_RUNNING;
 	e->env_runs++;
 	lcr3(PADDR(e->env_pgdir));
+	unlock_kernel();
 	env_pop_tf(&e->env_tf);
 	// LAB 3: Your code here.
 
