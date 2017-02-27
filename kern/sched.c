@@ -12,7 +12,6 @@ void
 sched_yield(void)
 {
 	struct Env *idle;
-
 	// Implement simple round-robin scheduling.
 	//
 	// Search through 'envs' for an ENV_RUNNABLE environment in
@@ -84,7 +83,6 @@ sched_halt(void)
 	// timer interupts come in, we know we should re-acquire the
 	// big kernel lock
 	xchg(&thiscpu->cpu_status, CPU_HALTED);
-
 	// Release the big kernel lock as if we were "leaving" the kernel
 	unlock_kernel();
 

@@ -88,6 +88,23 @@ extern void idt_entry19();
 
 extern void idt_entry0x30();
 
+extern void irq_entry0();
+extern void irq_entry1();
+extern void irq_entry2();
+extern void irq_entry3();
+extern void irq_entry4();
+extern void irq_entry5();
+extern void irq_entry6();
+extern void irq_entry7();
+extern void irq_entry8();
+extern void irq_entry9();
+extern void irq_entry10();
+extern void irq_entry11();
+extern void irq_entry12();
+extern void irq_entry13();
+extern void irq_entry14();
+extern void irq_entry15();
+
 void
 trap_init(void)
 {
@@ -100,27 +117,48 @@ trap_init(void)
 	// however, if user code tries to execute "int $0x0", then
 	// it will cause a general protection fault other than divide fault
 	// if DPL is set to be 0
-	SETGATE(idt[0], 1, GD_KT, idt_entry0, 0);
+
+	// According to the design of JOS, interrupt of external device is 
+	// always disabled in kernel mode
+	// We set every gate to be interrupt to achieve this
+	SETGATE(idt[0], 0, GD_KT, idt_entry0, 0);
 	SETGATE(idt[1], 0, GD_KT, idt_entry1, 0);
-	SETGATE(idt[2], 1, GD_KT, idt_entry2, 0);
-	SETGATE(idt[3], 1, GD_KT, idt_entry3, 3);
-	SETGATE(idt[4], 1, GD_KT, idt_entry4, 0);
-	SETGATE(idt[5], 1, GD_KT, idt_entry5, 0);
-	SETGATE(idt[6], 1, GD_KT, idt_entry6, 0);
-	SETGATE(idt[7], 1, GD_KT, idt_entry7, 0);
-	SETGATE(idt[8], 1, GD_KT, idt_entry8, 0);
+	SETGATE(idt[2], 0, GD_KT, idt_entry2, 0);
+	SETGATE(idt[3], 0, GD_KT, idt_entry3, 3);
+	SETGATE(idt[4], 0, GD_KT, idt_entry4, 0);
+	SETGATE(idt[5], 0, GD_KT, idt_entry5, 0);
+	SETGATE(idt[6], 0, GD_KT, idt_entry6, 0);
+	SETGATE(idt[7], 0, GD_KT, idt_entry7, 0);
+	SETGATE(idt[8], 0, GD_KT, idt_entry8, 0);
 
-	SETGATE(idt[10], 1, GD_KT, idt_entry10, 0);
-	SETGATE(idt[11], 1, GD_KT, idt_entry11, 0);
-	SETGATE(idt[12], 1, GD_KT, idt_entry12, 0);
-	SETGATE(idt[13], 1, GD_KT, idt_entry13, 0);
-	SETGATE(idt[14], 1, GD_KT, idt_entry14, 0);
+	SETGATE(idt[10], 0, GD_KT, idt_entry10, 0);
+	SETGATE(idt[11], 0, GD_KT, idt_entry11, 0);
+	SETGATE(idt[12], 0, GD_KT, idt_entry12, 0);
+	SETGATE(idt[13], 0, GD_KT, idt_entry13, 0);
+	SETGATE(idt[14], 0, GD_KT, idt_entry14, 0);
 
-	SETGATE(idt[16], 1, GD_KT, idt_entry16, 0);
-	SETGATE(idt[17], 1, GD_KT, idt_entry17, 0);
-	SETGATE(idt[18], 1, GD_KT, idt_entry18, 0);
-	SETGATE(idt[19], 1, GD_KT, idt_entry19, 0);
+	SETGATE(idt[16], 0, GD_KT, idt_entry16, 0);
+	SETGATE(idt[17], 0, GD_KT, idt_entry17, 0);
+	SETGATE(idt[18], 0, GD_KT, idt_entry18, 0);
+	SETGATE(idt[19], 0, GD_KT, idt_entry19, 0);
 	
+	SETGATE(idt[IRQ_OFFSET + 0], 0, GD_KT, irq_entry0, 0);
+	SETGATE(idt[IRQ_OFFSET + 1], 0, GD_KT, irq_entry1, 0);
+	SETGATE(idt[IRQ_OFFSET + 2], 0, GD_KT, irq_entry2, 0);
+	SETGATE(idt[IRQ_OFFSET + 3], 0, GD_KT, irq_entry3, 0);
+	SETGATE(idt[IRQ_OFFSET + 4], 0, GD_KT, irq_entry4, 0);
+	SETGATE(idt[IRQ_OFFSET + 5], 0, GD_KT, irq_entry5, 0);
+	SETGATE(idt[IRQ_OFFSET + 6], 0, GD_KT, irq_entry6, 0);
+	SETGATE(idt[IRQ_OFFSET + 7], 0, GD_KT, irq_entry7, 0);
+	SETGATE(idt[IRQ_OFFSET + 8], 0, GD_KT, irq_entry8, 0);
+	SETGATE(idt[IRQ_OFFSET + 9], 0, GD_KT, irq_entry9, 0);
+	SETGATE(idt[IRQ_OFFSET + 10], 0, GD_KT, irq_entry10, 0);
+	SETGATE(idt[IRQ_OFFSET + 11], 0, GD_KT, irq_entry11, 0);
+	SETGATE(idt[IRQ_OFFSET + 12], 0, GD_KT, irq_entry12, 0);
+	SETGATE(idt[IRQ_OFFSET + 13], 0, GD_KT, irq_entry13, 0);
+	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, irq_entry14, 0);
+	SETGATE(idt[IRQ_OFFSET + 15], 0, GD_KT, irq_entry15, 0);
+
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, idt_entry0x30, 3);
 	// LAB 3: Your code here.
 
@@ -253,6 +291,8 @@ trap_dispatch(struct Trapframe *tf)
 		// %eax is used to store the return value
 		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, regs->reg_ebx, regs->reg_edi, regs->reg_esi);
 		return;
+	case IRQ_OFFSET + IRQ_TIMER:
+		sched_yield(); // never return
 	}
 
 	// Handle spurious interrupts
@@ -289,16 +329,21 @@ trap(struct Trapframe *tf)
 	extern char *panicstr;
 	if (panicstr)
 		asm volatile("hlt");
-
 	// Re-acqurie the big kernel lock if we were halted in
 	// sched_yield()
-	if (xchg(&thiscpu->cpu_status, CPU_STARTED) == CPU_HALTED)
+	if (xchg(&thiscpu->cpu_status, CPU_STARTED) == CPU_HALTED){
 		lock_kernel();
+	}
 	
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
 	assert(!(read_eflags() & FL_IF));
+
+	// i add this assert, because i don't think kernel will need to 
+	// trap to another exception when handling a user exception.
+	// if it happened, it indicates a bug of the kernel itself
+	//assert( (tf->tf_cs & 3) == 3 );
 
 	if ((tf->tf_cs & 3) == 3) {
 		// Trapped from user mode.
@@ -330,7 +375,6 @@ trap(struct Trapframe *tf)
 
 	// Dispatch based on what type of trap occurred
 	trap_dispatch(tf);
-
 	// If we made it to this point, then no other environment was
 	// scheduled, so we should return to the current environment
 	// if doing so makes sense.
@@ -394,7 +438,38 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	if ( !curenv->env_pgfault_upcall ){
+		goto fail;
+	}
+		
+	//user_mem_assert(curenv, (void*)(UXSTACKTOP - PGSIZE), PGSIZE, PTE_U|PTE_W);
+	user_mem_assert(curenv, (void*)(UXSTACKTOP - 1), 1, PTE_U|PTE_W);
 
+	struct UTrapframe utf;
+	utf.utf_fault_va = fault_va;
+	utf.utf_err = tf->tf_err;
+	utf.utf_regs = tf->tf_regs;
+	utf.utf_eip = tf->tf_eip;
+	utf.utf_eflags = tf->tf_eflags;
+	utf.utf_esp = tf->tf_esp;
+
+	uintptr_t putbase;
+	if ( utf.utf_esp >= USTACKTOP ){
+		putbase = utf.utf_esp - sizeof(int) - sizeof(struct UTrapframe);
+		if ( putbase < UXSTACKTOP - PGSIZE ){
+			goto fail;
+		}
+	}else{
+		putbase = UXSTACKTOP - sizeof(struct UTrapframe);
+	}
+	*(struct UTrapframe*)putbase = utf;
+
+	tf->tf_esp = (uintptr_t)putbase;
+	tf->tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+	curenv->env_tf = *tf;
+	env_run(curenv);
+
+fail:
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);

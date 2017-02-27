@@ -46,6 +46,7 @@ i386_init(void)
 	lapic_init();
 
 	// Lab 4 multitasking initialization functions
+irq_mask_8259A &= ~1;
 	pic_init();
 
 	// Acquire the big kernel lock before waking up APs
@@ -61,9 +62,8 @@ i386_init(void)
 #else
 	// Touch all you want.
 //	ENV_CREATE(user_primes, ENV_TYPE_USER);
-	ENV_CREATE(user_yield, ENV_TYPE_USER);
-	ENV_CREATE(user_yield, ENV_TYPE_USER);
-	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	ENV_CREATE(user_stresssched, ENV_TYPE_USER);
+	ENV_CREATE(user_stresssched, ENV_TYPE_USER);
 //	ENV_CREATE(user_divzero, ENV_TYPE_USER);
 
 #endif // TEST*
@@ -113,6 +113,7 @@ mp_main(void)
 	cprintf("SMP: CPU %d starting\n", cpunum());
 
 	lapic_init();
+//irq_setmask_8259A(0);
 	env_init_percpu();
 	trap_init_percpu();
 	xchg(&thiscpu->cpu_status, CPU_STARTED); // tell boot_aps() we're up
@@ -126,7 +127,7 @@ mp_main(void)
 	sched_yield();
 
 	// Remove this after you finish Exercise 4
-	for (;;);
+//	for (;;);
 }
 
 /*
