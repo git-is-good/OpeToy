@@ -278,9 +278,18 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 
 	for (i = 0; i < memsz; i += PGSIZE) {
 		if (i >= filesz) {
+			// the original code here is seriouly buggy...
+			// it does not set bss to zero...
 			// allocate a blank page
-			if ((r = sys_page_alloc(child, (void*) (va + i), perm)) < 0)
+			//if ((r = sys_page_alloc(child, (void*) (va + i), perm)) < 0)
+			//	return r;
+			if ( (r = sys_page_alloc(0, (void*)PFTEMP, PTE_W)) < 0 ){
 				return r;
+			}
+			memset((void*)PFTEMP, 0, PGSIZE);
+			if ( (r = sys_page_map(0, (void*)PFTEMP, child, (void*)(va + i), perm)) < 0 ){
+				goto fail;
+			}
 		} else {
 			// from file
 			if ((r = sys_page_alloc(0, UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
@@ -289,12 +298,19 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 				return r;
 			if ((r = readn(fd, UTEMP, MIN(PGSIZE, filesz-i))) < 0)
 				return r;
+			if ( i + PGSIZE >= filesz && i + PGSIZE < memsz ){
+			// in case of a bss...
+				memset((void*)(UTEMP + filesz - i), 0, PGSIZE - (filesz - i));
+			}
 			if ((r = sys_page_map(0, UTEMP, child, (void*) (va + i), perm)) < 0)
 				panic("spawn: sys_page_map data: %e", r);
 			sys_page_unmap(0, UTEMP);
 		}
 	}
 	return 0;
+fail:
+	sys_page_unmap(0, (void*)PFTEMP);
+	return r;
 }
 
 // Copy the mappings for shared pages into the child address space.
@@ -302,6 +318,21 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	int pn = USTABDATA / PGSIZE;
+	int r;
+	while( pn < USTACKTOP / PGSIZE ){
+		if ( !(uvpd[pn >> 10] & PTE_P) ){
+			pn = ROUNDDOWN(pn, 1<<10) + (1<<10);
+			continue;
+		}
+		if ( uvpt[pn] & PTE_SHARE ){
+			r = sys_page_map(0, (void*)(pn*PGSIZE), child, (void*)(pn*PGSIZE), uvpt[pn] & PTE_SYSCALL);
+			if ( r < 0 ) goto fail;
+		}
+		pn++;
+	}
 	return 0;
+fail:
+	panic("copy_shared_pages: %e", r);
 }
 

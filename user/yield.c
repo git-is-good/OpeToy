@@ -7,11 +7,12 @@ umain(int argc, char **argv)
 {
 	int i;
 
-	cprintf("Hello, I am environment %08x.\n", thisenv->env_id);
+//	cprintf("Hello, I am environment %08x.\n", thisenv->env_id);
 	for (i = 0; i < 5; i++) {
+for ( int j = 0; j < 100000; j++ );
 		sys_yield();
-		cprintf("Back in environment %08x, iteration %d.\n",
-			thisenv->env_id, i);
+//		cprintf("Back in environment %08x, iteration %d.\n",
+//			thisenv->env_id, i);
 	}
-	cprintf("All done in environment %08x.\n", thisenv->env_id);
+//	cprintf("All done in environment %08x.\n", thisenv->env_id);
 }

@@ -12,7 +12,6 @@ void
 sched_yield(void)
 {
 	struct Env *idle;
-
 	// Implement simple round-robin scheduling.
 	//
 	// Search through 'envs' for an ENV_RUNNABLE environment in
@@ -27,7 +26,27 @@ sched_yield(void)
 	// another CPU (env_status == ENV_RUNNING). If there are
 	// no runnable environments, simply drop through to the code
 	// below to halt the cpu.
-
+	if ( thiscpu->cpu_env == NULL ){
+		for ( idle = envs; idle < envs + NENV; idle++ ){
+			if ( idle->env_status == ENV_RUNNABLE ){
+				env_run(idle);
+			}
+		}
+	}else{
+		for ( idle = thiscpu->cpu_env + 1; idle < envs + NENV; idle++ ){
+			if ( idle->env_status == ENV_RUNNABLE ){
+				env_run(idle);
+			}
+		}
+		for ( idle = envs; idle < thiscpu->cpu_env; idle++ ){
+			if ( idle->env_status == ENV_RUNNABLE ){
+				env_run(idle);
+			}
+		}
+		if ( thiscpu->cpu_env->env_status == ENV_RUNNING ){
+			env_run(thiscpu->cpu_env);
+		}
+	}
 	// LAB 4: Your code here.
 
 	// sched_halt never returns
@@ -64,7 +83,6 @@ sched_halt(void)
 	// timer interupts come in, we know we should re-acquire the
 	// big kernel lock
 	xchg(&thiscpu->cpu_status, CPU_HALTED);
-
 	// Release the big kernel lock as if we were "leaving" the kernel
 	unlock_kernel();
 

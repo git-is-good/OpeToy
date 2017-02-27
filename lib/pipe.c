@@ -20,8 +20,13 @@ struct Dev devpipe =
 #define PIPEBUFSIZ 32		// small to provoke races
 
 struct Pipe {
-	off_t p_rpos;		// read position
-	off_t p_wpos;		// write position
+//	off_t p_rpos;		// read position
+//	off_t p_wpos;		// write position
+	// the original code is buggy...
+	// p_rpos and p_wpos must be positive, otherwise
+	// p_buf[p_rpos % PIPEBUFSIZ] will be an undefined address
+	uint32_t p_rpos;
+	uint32_t p_wpos;
 	uint8_t p_buf[PIPEBUFSIZ];	// data buffer
 };
 
@@ -47,6 +52,9 @@ pipe(int pfd[2])
 		goto err2;
 	if ((r = sys_page_map(0, va, 0, fd2data(fd1), PTE_P|PTE_W|PTE_U|PTE_SHARE)) < 0)
 		goto err3;
+
+	struct Pipe *p = (struct Pipe*)fd2data(fd1);
+	p->p_rpos = p->p_wpos = 0;
 
 	// set up fd structures
 	fd0->fd_dev_id = devpipe.dev_id;

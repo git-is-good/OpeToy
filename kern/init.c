@@ -48,6 +48,7 @@ i386_init(void)
 	lapic_init();
 
 	// Lab 4 multitasking initialization functions
+irq_mask_8259A &= ~( (1<<IRQ_TIMER) | (1<<IRQ_KBD) | (1<<IRQ_SERIAL) );
 	pic_init();
 
 	// Lab 6 hardware initialization functions
@@ -56,6 +57,7 @@ i386_init(void)
 
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
+	lock_kernel();
 
 	// Starting non-boot CPUs
 	boot_aps();
@@ -74,6 +76,7 @@ i386_init(void)
 #else
 	// Touch all you want.
 	ENV_CREATE(user_icode, ENV_TYPE_USER);
+
 #endif // TEST*
 
 	// Should not be necessary - drains keyboard because interrupt has given up.
@@ -124,6 +127,7 @@ mp_main(void)
 	cprintf("SMP: CPU %d starting\n", cpunum());
 
 	lapic_init();
+//irq_setmask_8259A(0);
 	env_init_percpu();
 	trap_init_percpu();
 	xchg(&thiscpu->cpu_status, CPU_STARTED); // tell boot_aps() we're up
@@ -133,9 +137,11 @@ mp_main(void)
 	// only one CPU can enter the scheduler at a time!
 	//
 	// Your code here:
+	lock_kernel();
+	sched_yield();
 
 	// Remove this after you finish Exercise 4
-	for (;;);
+//	for (;;);
 }
 
 /*
