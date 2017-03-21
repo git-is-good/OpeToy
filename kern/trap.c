@@ -293,6 +293,7 @@ trap_dispatch(struct Trapframe *tf)
 		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, regs->reg_ebx, regs->reg_edi, regs->reg_esi);
 		return;
 	case IRQ_OFFSET + IRQ_TIMER:
+		time_tick();
 		sched_yield(); // never return
 	case IRQ_OFFSET + IRQ_KBD:
 		kbd_intr();

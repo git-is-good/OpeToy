@@ -60,6 +60,8 @@ int	sys_page_unmap(envid_t env, void *pg);
 int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
 int	sys_ipc_recv(void *rcv_pg);
 unsigned int sys_time_msec(void);
+int	sys_ether_try_send(void* buf_to_send, size_t sz);
+int	sys_ether_try_recv(void* buf_to_recv, size_t sz);
 
 // This must be inlined.  Exercise for reader: why?
 static inline envid_t __attribute__((always_inline))
@@ -81,6 +83,11 @@ envid_t	ipc_find_env(enum EnvType type);
 #define	PTE_SHARE	0x400
 envid_t	fork(void);
 envid_t	sfork(void);	// Challenge!
+
+// clear COW to ensure this page can be written
+static inline void clear_cow(void *va){
+	*(uint8_t volatile*)va = *(uint8_t*)va;
+}
 
 // fd.c
 int	close(int fd);

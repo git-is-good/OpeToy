@@ -1,6 +1,7 @@
 #include "ns.h"
 #include <netif/etharp.h>
 
+#include <inc/lib.h>
 static envid_t output_envid;
 static envid_t input_envid;
 
@@ -87,8 +88,6 @@ umain(int argc, char **argv)
 		input(ns_envid);
 		return;
 	}
-
-	cprintf("Sending ARP announcement...\n");
 	announce();
 
 	while (1) {

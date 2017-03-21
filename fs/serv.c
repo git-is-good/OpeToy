@@ -9,7 +9,7 @@
 #include "fs.h"
 
 
-#define debug 0
+#define debug 1
 
 // The file system server maintains three structures
 // for each open file.
@@ -218,7 +218,7 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	if ( (r = openfile_lookup(envid, req->req_fileid, &o)) < 0 ){
 		return r;
 	}
-	if ( (r = file_read(o->o_file, ret->ret_buf, req->req_n, o->o_fd->fd_offset)) < 0 ){
+	if ( (r = file_read(o->o_file, ret->ret_buf, req->req_n > PGSIZE ? PGSIZE : req->req_n, o->o_fd->fd_offset)) < 0 ){
 		return r;
 	}
 	o->o_fd->fd_offset += r;
@@ -243,6 +243,10 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 	struct OpenFile *o;
 	if ( (r = openfile_lookup(envid, req->req_fileid, &o)) < 0 ){
 		return r;
+	}
+	int n = req->req_n;
+	if ( n > PGSIZE - (sizeof(int) + sizeof(size_t)) ){
+		n = PGSIZE - (sizeof(int) + sizeof(size_t));
 	}
 	if ( (r = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset)) < 0 ){
 		return r;
@@ -269,7 +273,6 @@ serve_stat(envid_t envid, union Fsipc *ipc)
 
 	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0)
 		return r;
-
 	strcpy(ret->ret_name, o->o_file->f_name);
 	ret->ret_size = o->o_file->f_size;
 	ret->ret_isdir = (o->o_file->f_type == FTYPE_DIR);

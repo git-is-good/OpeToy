@@ -12,6 +12,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -383,7 +384,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	env_store->env_ipc_recving = 0;
 	env_store->env_ipc_from = curenv->env_id;
 	env_store->env_ipc_value = value;
-	env_store->env_ipc_perm = (ispg ? perm : 0);
+	env_store->env_ipc_perm = (ispg ? (perm|PTE_P|PTE_U) : 0);
 	env_store->env_tf.tf_regs.reg_eax = 0;
 	env_store->env_status = ENV_RUNNABLE;
 	return 0;
@@ -421,7 +422,20 @@ static int
 sys_time_msec(void)
 {
 	// LAB 6: Your code here.
-	panic("sys_time_msec not implemented");
+	return time_msec();
+	//panic("sys_time_msec not implemented");
+}
+
+static int
+sys_ether_try_send(void* buf_to_trans, size_t sz){
+	user_mem_assert(curenv, buf_to_trans, sz, PTE_U);
+	return e1000_transmit(buf_to_trans, sz);
+}
+
+static int
+sys_ether_try_recv(void* buf_to_recv, size_t sz){
+	user_mem_assert(curenv, buf_to_recv, sz, PTE_U|PTE_W);
+	return e1000_receive(buf_to_recv, sz);
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -465,6 +479,12 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_ipc_recv((void*)a1);		
 	case SYS_env_set_trapframe:
 		return sys_env_set_trapframe(a1, (struct Trapframe*)a2);
+	case SYS_time_msec:
+		return sys_time_msec();
+	case SYS_ether_try_send:
+		return sys_ether_try_send((void*)a1, a2);
+	case SYS_ether_try_recv:
+		return sys_ether_try_recv((void*)a1, a2);
 	default:
 		return -E_INVAL;
 	}

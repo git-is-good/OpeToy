@@ -108,6 +108,10 @@ sys_env_set_pgfault_upcall(envid_t envid, void *upcall)
 int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, int perm)
 {
+	// maybe this page is COW...
+	if ( (uint32_t)srcva < UTOP && (perm & PTE_W) ){
+		clear_cow(srcva);
+	}
 	return syscall(SYS_ipc_try_send, 0, envid, value, (uint32_t) srcva, perm, 0);
 }
 
@@ -121,4 +125,19 @@ unsigned int
 sys_time_msec(void)
 {
 	return (unsigned int) syscall(SYS_time_msec, 0, 0, 0, 0, 0, 0);
+}
+
+int sys_ether_try_send(void* buf_to_send, size_t sz)
+{
+	return syscall(SYS_ether_try_send, 0, (uint32_t)buf_to_send, sz, 0, 0, 0);
+}
+
+int
+sys_ether_try_recv(void* buf_to_recv, size_t sz)
+{
+	if ( sz > PGSIZE ){
+		return -E_INVAL;
+	}
+	clear_cow(buf_to_recv);
+	return syscall(SYS_ether_try_recv, 0, (uint32_t)buf_to_recv, sz, 0, 0, 0);
 }
